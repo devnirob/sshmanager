@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=SSH Manager
+GenericName=Tabbed SSH and SFTP Client
+Comment=MobaXterm and FileZilla alternative for Linux SSH and SFTP workflows
+Exec=sshmanager
+Icon=io.github.nirob.SSHManager
+Terminal=false
+Categories=Network;RemoteAccess;
+Keywords=SSH;SFTP;Server;Terminal;Remote;MobaXterm;FileZilla;SCP;FTP;
+StartupNotify=true
+StartupWMClass=io.github.nirob.SSHManager

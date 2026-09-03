@@ -1,0 +1,30 @@
+[project]
+name = "sshmanager"
+version = "2.0.0"
+description = "Tabbed MobaXterm alternative for Linux with SSH terminal and SFTP file manager"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{name = "Devnirob"}]
+keywords = ["ssh", "sftp", "linux", "mobaxterm", "filezilla", "remote-server", "terminal"]
+classifiers = [
+    "Environment :: X11 Applications :: GTK",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Topic :: Internet",
+    "Topic :: System :: Systems Administration",
+]
+
+[project.urls]
+Homepage = "https://github.com/devnirob/sshmanager"
+Issues = "https://github.com/devnirob/sshmanager/issues"
+Releases = "https://github.com/devnirob/sshmanager/releases"
+
+[project.scripts]
+sshmanager = "sshmanager.app:main"
+
+[build-system]
+requires = ["setuptools>=66"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["sshmanager"]

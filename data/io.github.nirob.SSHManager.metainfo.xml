@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.nirob.SSHManager</id>
+  <name>SSH Manager</name>
+  <summary>Tabbed SSH terminal and SFTP file manager for Linux</summary>
+  <developer id="io.github.devnirob">
+    <name>Devnirob</name>
+  </developer>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>LicenseRef-proprietary</project_license>
+  <description>
+    <p>
+      SSH Manager is a native MobaXterm alternative for Linux that combines
+      independent SSH terminal tabs with FileZilla-style dual-pane SFTP file
+      management.
+    </p>
+    <p>
+      Save servers, use passwords, SSH keys or an agent, connect through jump
+      hosts, transfer folders, and manage local and remote files from one app.
+    </p>
+  </description>
+  <launchable type="desktop-id">io.github.nirob.SSHManager.desktop</launchable>
+  <url type="homepage">https://github.com/devnirob/sshmanager</url>
+  <url type="bugtracker">https://github.com/devnirob/sshmanager/issues</url>
+  <categories>
+    <category>Network</category>
+    <category>RemoteAccess</category>
+  </categories>
+  <provides>
+    <binary>sshmanager</binary>
+  </provides>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="2.0.0" date="2026-09-03">
+      <description>
+        <p>Adds independent SSH and SFTP tabs, local file editing, complete context menus, explicit SFTP host-key trust, and an offline runtime package.</p>
+      </description>
+    </release>
+  </releases>
+</component>

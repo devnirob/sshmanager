@@ -1,59 +1,69 @@
-# SSH Manager
+# SSH Manager — a MobaXterm alternative for Linux
 
-SSH Manager is a small desktop application for working with SSH servers on Debian and Ubuntu. It keeps saved connections, an SSH terminal, and an SFTP file browser in the same window.
+SSH Manager is a native Linux SSH client and SFTP file manager for people who want a focused **MobaXterm alternative on Linux** and a tabbed, **FileZilla-style SFTP client** in one desktop app. It combines saved servers, concurrent SSH terminals, and independent dual-pane SFTP sessions without Electron or a browser.
 
-I built it for the routine jobs where opening several terminal and file-transfer applications feels unnecessary. It uses OpenSSH and VTE for terminal sessions and Paramiko for SFTP.
+## Highlights
 
-## What it does
+- Open multiple independent SSH terminal tabs at the same time.
+- Open multiple independent SFTP tabs, each connected to its own server.
+- Browse local and remote files side by side like FileZilla.
+- Open or edit local files by double-clicking or using the right-click menu.
+- Right-click local files to open/edit, upload, rename, trash, copy paths, create folders, or refresh.
+- Right-click remote files to download, rename, delete, copy paths, create folders, or refresh.
+- Select one item normally, use Ctrl/Shift for multiple items, and avoid stale selections across panes.
+- Upload and download multiple files or complete directory trees away from the UI thread.
+- Authenticate with passwords, private keys, or the SSH agent, including jump hosts.
+- Save passwords in the Linux keyring through libsecret instead of a plaintext config file.
+- Verify a new SFTP server's SHA-256 host-key fingerprint before trusting it.
+- Use VS Code Dark, Light, or System colors in the app and terminal.
 
-- Saves connection details such as host, port, username, private key, jump host, and remote path
-- Opens SSH sessions in an embedded terminal
-- Copies and pastes with `Ctrl+Shift+C` and `Ctrl+Shift+V`
-- Works with passwords, private keys, and the SSH agent
-- Stores saved passwords in the Linux keyring
-- Browses local and remote files side by side
-- Uploads and downloads multiple files or complete folders
-- Creates, renames, and removes remote files and folders
-- Keeps file transfers off the main UI thread
-- Includes VS Code Dark, Light, and System themes
-- Uses the correct application identity and icon on Wayland and X11
+## Offline Debian/Ubuntu installation
 
-## Installation
-
-Download the current `.deb` from the [Releases page](https://github.com/devnirob/sshmanager/releases) and install it with `apt`:
+Download `ssh-manager_2.0.0_amd64.deb` and its checksum from the [GitHub Releases page](https://github.com/devnirob/sshmanager/releases), then run:
 
 ```bash
-sudo apt install ./ssh-manager_1.1.0_all.deb
+sha256sum -c ssh-manager_2.0.0_amd64.deb.sha256
+sudo apt install ./ssh-manager_2.0.0_amd64.deb
 ```
 
-Using `apt` is recommended because it also installs the GTK, VTE, OpenSSH, Paramiko, and keyring packages required by the application.
+Version 2.0's `.deb` is intentionally much larger than the old 17–18 KB package. The old package held only the application source and asked APT to download GTK, VTE, Paramiko, libsecret, OpenSSH, and `sshpass`. The new architecture-specific package includes a private Python/GTK/VTE/Paramiko/OpenSSH runtime, so installation does not need the internet or those extra packages.
 
-Once installed, open **SSH Manager** from the application menu or run:
+The offline package targets 64-bit (`amd64`) Debian/Ubuntu desktops with glibc 2.39 or newer (for example Debian 13 or Ubuntu 24.04). It does not bundle the Linux kernel, graphics stack, desktop session, or glibc. Build on the oldest distribution you intend to support when redistributing a locally built package.
+
+After installation, launch **SSH Manager** from the application menu or run:
 
 ```bash
 sshmanager
 ```
 
-## Supported systems
-
-The package is built to work on:
-
-- Debian 11, 12, and 13
-- Ubuntu 20.04 LTS and newer releases
-- Debian or Ubuntu derivatives that provide the dependency packages listed in the `.deb`
-
-The package is architecture-independent because the application itself is Python. Its native GTK and SSH components come from the distribution's package manager. This is also why the download is small; it does not contain duplicate copies of libraries already maintained by the operating system.
-
-On a derivative that uses different package names, the application may work but the `.deb` might not resolve its dependencies automatically.
-
 ## Getting started
 
-1. Create a server entry or select the default one.
-2. Fill in the hostname, username, port, and authentication details.
-3. Click **Save Server**.
-4. Choose **Open SSH** for a terminal or **Browse Files** for SFTP.
+1. Create or select a server in the Server Library.
+2. Enter its hostname, username, port, and authentication details.
+3. Select **Save Server**.
+4. Select **Open SSH** or **Browse Files**. Each click creates a separate connection tab.
+5. Use **+ New SSH Tab** or **+ New SFTP Tab** after selecting another server to keep several sessions open together.
 
-Appearance settings are available from the button in the title bar. VS Code Dark is used by default.
+## SFTP file management
+
+The left pane is the local computer and the right pane is the remote server. A normal click replaces the selection; Ctrl-click toggles items; Shift-click selects a range. Selecting the opposite pane clears the old pane's selection.
+
+Double-click a local folder to enter it, or double-click a local file to open it in the desktop's default editor/application. Remote folders open on double-click; remote files download to the current local folder. Downloads ask before replacing or merging existing local items. Right-click either pane for the complete action menu. Local delete operations go to the desktop Trash; remote deletes are permanent and require confirmation.
+
+## Security
+
+On a first SFTP connection, compare the displayed SHA-256 fingerprint with a value obtained from the server administrator through a separate trusted channel. SSH host-key changes and SFTP host-key changes are rejected.
+
+Application data is stored under:
+
+```text
+~/.config/sshmanager/
+├── profiles.json
+├── settings.json
+└── known_hosts
+```
+
+These files and directories use user-only permissions. Passwords are not stored there; saved passwords go to the desktop keyring. See [SECURITY.md](SECURITY.md) for reporting guidance and [SECURITY_AUDIT.md](SECURITY_AUDIT.md) for the version 2.0 review and resolved findings.
 
 ## Terminal shortcuts
 
@@ -62,26 +72,26 @@ Appearance settings are available from the button in the title bar. VS Code Dark
 | Copy selected text | `Ctrl+Shift+C` |
 | Paste clipboard text | `Ctrl+Shift+V` |
 
-Copy, Paste, Clear, Connect, and Disconnect are also available from the terminal toolbar.
+Copy, Paste, Clear, Connect, Disconnect, and Open Separate Terminal are also available from each SSH tab.
 
-## Where data is stored
+## Build and test
 
-Connection profiles are saved in:
+Run the test suite:
 
-```text
-~/.config/sshmanager/profiles.json
+```bash
+./test.sh
 ```
 
-Theme settings and accepted SFTP host keys are stored in the same directory. Profile and settings files are created with user-only permissions.
+Build the offline `.deb` from an amd64 Debian/Ubuntu development machine where the runtime packages are installed:
 
-Passwords are not written to the profile file. When password saving is enabled, they are stored through libsecret in the desktop keyring. SSH keys and an SSH agent are still the better choice for security-sensitive servers.
+```bash
+./build-deb.sh
+```
 
-## Notes
+The builder collects the private runtime, checks it without using the development Python packages, creates the package in `dist/`, and writes a SHA-256 checksum beside it.
 
-- Install the package with `apt`, not `dpkg -i`, if you want dependencies resolved automatically.
-- A changed SFTP host key is rejected.
-- The separate-terminal option uses the system's `x-terminal-emulator`.
+For a lightweight source checkout install (which uses system dependencies), run `./install.sh`.
 
-## License
+## Project status and license
 
-A license has not been selected yet. Until one is added, the source and application remain copyright-protected.
+Changes are recorded in [CHANGELOG.md](CHANGELOG.md). A source license has not been selected yet; until one is added, the project remains copyright-protected. Copyright notices for libraries redistributed in the offline package are included under `/usr/share/doc/ssh-manager/third-party/`.
