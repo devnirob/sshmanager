@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0.1 — 2026-09-04
+
+- Fix password SSH sessions ending with encoded status 1280 because the secure
+  password pipe was not mapped to the descriptor read by `sshpass`.
+- Show the decoded SSH exit code and a clear saved-password message when
+  authentication is rejected.
+
 ## 2.0.0 — 2026-09-03
 
 - Add independent, closable tabs for concurrent SSH terminals and SFTP sessions.

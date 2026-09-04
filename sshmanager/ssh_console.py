@@ -14,6 +14,35 @@ from .models import ConnectionProfile
 from .system_ssh import ssh_command
 from .themes import TERMINAL_THEMES
 
+PASSWORD_CHILD_FD = 9
+
+
+def _password_fd_setup(source_fd: int):
+    """Return the minimal child setup needed to expose the password pipe."""
+
+    def setup(_user_data: object) -> None:
+        if source_fd == PASSWORD_CHILD_FD:
+            os.set_inheritable(PASSWORD_CHILD_FD, True)
+        else:
+            os.dup2(source_fd, PASSWORD_CHILD_FD, inheritable=True)
+
+    return setup
+
+
+def ssh_exit_message(status: int) -> str:
+    """Translate VTE's wait status into an actionable, human-readable result."""
+    try:
+        exit_code = os.waitstatus_to_exitcode(status)
+    except ValueError:
+        exit_code = status
+    if exit_code == 0:
+        return "SSH session ended."
+    if exit_code == 5:
+        return "SSH authentication failed. Check the saved password and try again."
+    if exit_code < 0:
+        return f"SSH session was stopped by signal {-exit_code}."
+    return f"SSH session ended with exit code {exit_code}."
+
 
 class SSHConsoleWidget(Gtk.Box):
     __gsignals__ = {"status-changed": (GObject.SignalFlags.RUN_FIRST, None, (str,))}
@@ -127,29 +156,31 @@ class SSHConsoleWidget(Gtk.Box):
             return
 
         password_fd: int | None = None
+        child_setup = None
         if self.password:
             password_fd, password_writer = os.pipe()
-            os.set_inheritable(password_fd, True)
             try:
                 os.write(password_writer, self.password.encode("utf-8"))
             finally:
                 os.close(password_writer)
-        command, environment = ssh_command(self.profile, self.password, password_fd)
+            child_setup = _password_fd_setup(password_fd)
+        command, environment = ssh_command(
+            self.profile,
+            self.password,
+            PASSWORD_CHILD_FD if password_fd is not None else None,
+        )
         self.terminal.reset(True, True)
         self._write_banner(f"Connecting to {self.profile.target}:{self.profile.port} ...")
         self.connect_button.set_sensitive(False)
         self.disconnect_button.set_sensitive(True)
         try:
-            spawn_flags = GLib.SpawnFlags.SEARCH_PATH
-            if password_fd is not None:
-                spawn_flags |= GLib.SpawnFlags.LEAVE_DESCRIPTORS_OPEN
             success, pid = self.terminal.spawn_sync(
                 Vte.PtyFlags.DEFAULT,
                 str(os.path.expanduser("~")),
                 command,
                 environment,
-                spawn_flags,
-                None,
+                GLib.SpawnFlags.SEARCH_PATH,
+                child_setup,
                 None,
                 None,
             )
@@ -212,10 +243,7 @@ class SSHConsoleWidget(Gtk.Box):
 
     def _on_child_exited(self, _terminal: Vte.Terminal, status: int) -> None:
         self._set_disconnected()
-        if status:
-            self._status(f"SSH session ended with status {status}.")
-        else:
-            self._status("SSH session ended.")
+        self._status(ssh_exit_message(status))
 
     def _set_disconnected(self) -> None:
         self.child_pid = None

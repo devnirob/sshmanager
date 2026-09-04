@@ -31,6 +31,11 @@
   </provides>
   <content_rating type="oars-1.1"/>
   <releases>
+    <release version="2.0.1" date="2026-09-04">
+      <description>
+        <p>Fixes password SSH authentication and improves authentication error messages.</p>
+      </description>
+    </release>
     <release version="2.0.0" date="2026-09-03">
       <description>
         <p>Adds independent SSH and SFTP tabs, local file editing, complete context menus, explicit SFTP host-key trust, and an offline runtime package.</p>

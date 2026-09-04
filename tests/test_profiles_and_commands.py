@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 from sshmanager.models import ConnectionProfile
 from sshmanager.profiles import ProfileStore
+from sshmanager.ssh_console import ssh_exit_message
 from sshmanager.system_ssh import ssh_command
 
 
@@ -49,6 +50,15 @@ class SSHCommandTests(unittest.TestCase):
         self.assertIn("ForwardAgent=no", command)
         self.assertIn("ClearAllForwardings=yes", command)
         self.assertIn("HostKeyAlgorithms=-ssh-rsa", command)
+
+    def test_vte_wait_status_reports_sshpass_authentication_failure(self):
+        self.assertEqual(
+            ssh_exit_message(5 << 8),
+            "SSH authentication failed. Check the saved password and try again.",
+        )
+
+    def test_vte_wait_status_reports_normal_exit(self):
+        self.assertEqual(ssh_exit_message(0), "SSH session ended.")
 
 
 if __name__ == "__main__":
