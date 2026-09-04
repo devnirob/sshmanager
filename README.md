@@ -12,6 +12,10 @@ SSH Manager is a native Linux SSH client and SFTP file manager for people who wa
 - Right-click remote files to download, rename, delete, copy paths, create folders, or refresh.
 - Select one item normally, use Ctrl/Shift for multiple items, and avoid stale selections across panes.
 - Upload and download multiple files or complete directory trees away from the UI thread.
+- See the active filename, current-file bytes, overall progress, completed file count,
+  remaining bytes, transfer speed, and ETA during every batch transfer.
+- Accelerate batches of small files with up to four SFTP channels, pipelined
+  uploads, and bounded download prefetching.
 - Authenticate with passwords, private keys, or the SSH agent, including jump hosts.
 - Save passwords in the Linux keyring through libsecret instead of a plaintext config file.
 - Verify a new SFTP server's SHA-256 host-key fingerprint before trusting it.
@@ -19,11 +23,11 @@ SSH Manager is a native Linux SSH client and SFTP file manager for people who wa
 
 ## Offline Debian/Ubuntu installation
 
-Download `ssh-manager_2.0.1_amd64.deb` and its checksum from the [GitHub Releases page](https://github.com/devnirob/sshmanager/releases), then run:
+Download `ssh-manager_2.1.0_amd64.deb` and its checksum from the [GitHub Releases page](https://github.com/devnirob/sshmanager/releases), then run:
 
 ```bash
-sha256sum -c ssh-manager_2.0.1_amd64.deb.sha256
-sudo apt install ./ssh-manager_2.0.1_amd64.deb
+sha256sum -c ssh-manager_2.1.0_amd64.deb.sha256
+sudo apt install ./ssh-manager_2.1.0_amd64.deb
 ```
 
 Version 2.0's `.deb` is intentionally much larger than the old 17–18 KB package. The old package held only the application source and asked APT to download GTK, VTE, Paramiko, libsecret, OpenSSH, and `sshpass`. The new architecture-specific package includes a private Python/GTK/VTE/Paramiko/OpenSSH runtime, so installation does not need the internet or those extra packages.
@@ -48,7 +52,7 @@ sshmanager
 
 The left pane is the local computer and the right pane is the remote server. A normal click replaces the selection; Ctrl-click toggles items; Shift-click selects a range. Selecting the opposite pane clears the old pane's selection.
 
-Double-click a local folder to enter it, or double-click a local file to open it in the desktop's default editor/application. Remote folders open on double-click; remote files download to the current local folder. Downloads ask before replacing or merging existing local items. Right-click either pane for the complete action menu. Local delete operations go to the desktop Trash; remote deletes are permanent and require confirmation.
+Double-click a local folder to enter it, or double-click a local file to open it in the desktop's default editor/application. Remote folders open on double-click; remote files download to the current local folder. Downloads ask before replacing or merging existing local items. Right-click either pane for the complete action menu. The main Refresh Both button reloads both current folders. Local delete operations go to the desktop Trash; remote deletes are permanent and require confirmation.
 
 ## Security
 

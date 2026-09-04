@@ -15,6 +15,8 @@ headerbar { box-shadow: none; }
 .content-pad { padding: 18px; }
 .profile-card { background-color: @theme_base_color; border: 1px solid @borders; border-radius: 8px; padding: 22px; }
 .tool-strip { background-color: shade(@theme_bg_color, 0.96); border-bottom: 1px solid @borders; padding: 8px; }
+.transfer-panel { background-color: shade(@theme_bg_color, 0.96); border-bottom: 1px solid @borders; padding: 8px 12px; }
+.transfer-panel progressbar trough, .transfer-panel progressbar progress { min-height: 8px; }
 .session-strip { background-color: shade(@theme_bg_color, 0.92); border-bottom: 1px solid @borders; padding: 8px; }
 .empty-state { opacity: 0.68; font-size: 16px; }
 .file-panel { background-color: @theme_base_color; padding: 12px; }
@@ -69,6 +71,8 @@ headerbar button:hover { background-color: #2a2d2e; color: white; }
   padding: 22px;
 }
 .tool-strip { background-color: #252526; border-bottom: 1px solid #3c3c3c; padding: 8px; }
+.transfer-panel { background-color: #252526; border-bottom: 1px solid #3c3c3c; padding: 8px 12px; }
+.transfer-panel progressbar trough, .transfer-panel progressbar progress { min-height: 8px; }
 .session-strip { background-color: #181818; border-bottom: 1px solid #3c3c3c; padding: 8px; }
 .empty-state { color: #9d9d9d; font-size: 16px; }
 .file-panel { background-color: #1e1e1e; padding: 12px; }
@@ -135,6 +139,8 @@ headerbar {
 .content-pad { padding: 18px; }
 .profile-card { background-color: white; border: 1px solid #d4d4d4; border-radius: 8px; padding: 22px; }
 .tool-strip { background-color: #f3f3f3; border-bottom: 1px solid #d4d4d4; padding: 8px; }
+.transfer-panel { background-color: #f3f3f3; border-bottom: 1px solid #d4d4d4; padding: 8px 12px; }
+.transfer-panel progressbar trough, .transfer-panel progressbar progress { min-height: 8px; }
 .session-strip { background-color: #ffffff; border-bottom: 1px solid #d4d4d4; padding: 8px; }
 .empty-state { color: #616161; font-size: 16px; }
 .file-panel { background-color: white; padding: 12px; }

@@ -1,6 +1,6 @@
 [project]
 name = "sshmanager"
-version = "2.0.1"
+version = "2.1.0"
 description = "Tabbed MobaXterm alternative for Linux with SSH terminal and SFTP file manager"
 readme = "README.md"
 requires-python = ">=3.10"

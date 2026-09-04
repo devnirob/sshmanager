@@ -5,7 +5,7 @@ from pathlib import Path
 
 APP_ID = "io.github.nirob.SSHManager"
 APP_NAME = "SSH Manager"
-VERSION = "2.0.1"
+VERSION = "2.1.0"
 
 
 def _xdg_path(variable: str, fallback: Path) -> Path:

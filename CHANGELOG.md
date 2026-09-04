@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.1.0 — 2026-09-04
+
+- Add a persistent SFTP transfer panel with the active filename, per-file bytes,
+  overall percentage, completed file count, remaining bytes, speed, and ETA.
+- Speed up batches of small files with up to four SFTP channels per connection.
+- Remove Paramiko's redundant post-upload `stat` round trip while retaining SFTP
+  write acknowledgements, and enable bounded download prefetching.
+- Throttle progress rendering so large batches do not flood the GTK event queue.
+- Make the main Refresh Both action reload both current local and remote folders.
+
 ## 2.0.1 — 2026-09-04
 
 - Fix password SSH sessions ending with encoded status 1280 because the secure

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import os
 import posixpath
+import threading
+import time
 from concurrent.futures import Future, ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
@@ -11,10 +13,18 @@ import gi
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("Gdk", "3.0")
-from gi.repository import Gdk, Gio, GLib, GObject, Gtk
+from gi.repository import Gdk, Gio, GLib, GObject, Gtk, Pango
 
 from .models import ConnectionProfile
-from .sftp import RemoteEntry, SFTPError, SFTPService, UnknownHostKeyError, safe_local_child
+from .sftp import (
+    RemoteEntry,
+    SFTPError,
+    SFTPService,
+    TransferProgress,
+    TransferSummary,
+    UnknownHostKeyError,
+    safe_local_child,
+)
 
 
 def format_size(size: int) -> str:
@@ -25,6 +35,17 @@ def format_size(size: int) -> str:
             return f"{int(value)} {unit}" if unit == "B" else f"{value:.1f} {unit}"
         value /= 1024
     return f"{size} B"
+
+
+def format_duration(seconds: float) -> str:
+    seconds = max(0, int(seconds))
+    if seconds < 60:
+        return f"{seconds}s"
+    minutes, seconds = divmod(seconds, 60)
+    if minutes < 60:
+        return f"{minutes}m {seconds:02d}s"
+    hours, minutes = divmod(minutes, 60)
+    return f"{hours}h {minutes:02d}m"
 
 
 class SFTPBrowserWidget(Gtk.Box):
@@ -39,6 +60,9 @@ class SFTPBrowserWidget(Gtk.Box):
         self.remote_dir = "/"
         self.executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="sftp")
         self.busy = False
+        self.transfer_active = False
+        self._progress_lock = threading.Lock()
+        self._last_progress_update = 0.0
         self._build_ui()
         self.refresh_local()
 
@@ -51,7 +75,7 @@ class SFTPBrowserWidget(Gtk.Box):
         self.connect_button = self._button(toolbar, "Connect SFTP", self.connect_sftp, "suggested-action")
         self.disconnect_button = self._button(toolbar, "Disconnect", self.disconnect_sftp)
         self.disconnect_button.set_sensitive(False)
-        self._button(toolbar, "Refresh", self.refresh_remote)
+        self.refresh_button = self._button(toolbar, "Refresh Both", self.refresh_all)
         self._button(toolbar, "Upload →", self.upload_selected)
         self._button(toolbar, "← Download", self.download_selected)
         self._button(toolbar, "New Folder", self.create_remote_directory)
@@ -60,6 +84,22 @@ class SFTPBrowserWidget(Gtk.Box):
 
         self.spinner = Gtk.Spinner()
         toolbar.pack_end(self.spinner, False, False, 4)
+
+        self.transfer_panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+        self.transfer_panel.get_style_context().add_class("transfer-panel")
+        self.transfer_label = Gtk.Label(label="")
+        self.transfer_label.set_xalign(0)
+        self.transfer_label.set_ellipsize(Pango.EllipsizeMode.MIDDLE)
+        self.transfer_panel.pack_start(self.transfer_label, False, False, 0)
+        self.transfer_progress = Gtk.ProgressBar()
+        self.transfer_progress.set_show_text(False)
+        self.transfer_panel.pack_start(self.transfer_progress, False, False, 0)
+        self.transfer_detail = Gtk.Label(label="")
+        self.transfer_detail.set_xalign(0)
+        self.transfer_panel.pack_start(self.transfer_detail, False, False, 0)
+        self.transfer_panel.set_no_show_all(True)
+        self.pack_start(self.transfer_panel, False, False, 0)
+        self.transfer_panel.hide()
 
         pane = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
         pane.set_position(550)
@@ -182,6 +222,11 @@ class SFTPBrowserWidget(Gtk.Box):
             except OSError:
                 continue
 
+    def refresh_all(self) -> None:
+        """Refresh the current folders in both file panes."""
+        self.refresh_local()
+        self.refresh_remote()
+
     def refresh_remote(self) -> None:
         if self.service is None:
             self.connect_sftp()
@@ -222,11 +267,12 @@ class SFTPBrowserWidget(Gtk.Box):
             self._status("Connect SFTP first.")
             return
 
-        def upload_all() -> None:
-            for path in paths:
-                self.service.upload(path, self.remote_dir, self._progress)
+        self._begin_transfer("Uploading")
 
-        self._run(f"Uploading {len(paths)} item(s)", upload_all, lambda _: self.refresh_remote())
+        def upload_all() -> TransferSummary:
+            return self.service.upload_many(paths, self.remote_dir, self._progress)
+
+        self._run(f"Preparing {len(paths)} upload selection(s)", upload_all, self._upload_finished)
 
     def download_selected(self) -> None:
         entries = self._selected_objects(self.remote_tree)
@@ -258,11 +304,12 @@ class SFTPBrowserWidget(Gtk.Box):
                 self._status("Download cancelled; existing local items were left unchanged.")
                 return
 
-        def download_all() -> None:
-            for entry in entries:
-                self.service.download(entry, self.local_dir, self._progress, overwrite=overwrite)
+        self._begin_transfer("Downloading")
 
-        self._run(f"Downloading {len(entries)} item(s)", download_all, lambda _: self.refresh_local())
+        def download_all() -> TransferSummary:
+            return self.service.download_many(entries, self.local_dir, self._progress, overwrite=overwrite)
+
+        self._run(f"Preparing {len(entries)} download selection(s)", download_all, self._download_finished)
 
     def create_remote_directory(self) -> None:
         name = self._text_dialog("New remote folder", "Folder name")
@@ -533,11 +580,13 @@ class SFTPBrowserWidget(Gtk.Box):
         try:
             result = future.result()
         except (SFTPError, OSError) as error:
+            self._transfer_failed(str(error))
             if on_error and on_error(error):
                 return False
             self._status(f"SFTP error: {error}")
             return False
         except Exception as error:
+            self._transfer_failed(str(error))
             self._status(f"Unexpected SFTP error: {error}")
             return False
         on_success(result)
@@ -571,10 +620,79 @@ class SFTPBrowserWidget(Gtk.Box):
         self.connect_sftp()
         return True
 
-    def _progress(self, transferred: int, total: int) -> None:
-        if total:
-            percent = int(transferred * 100 / total)
-            GLib.idle_add(self._status, f"Transferring: {percent}%")
+    def _begin_transfer(self, direction: str) -> None:
+        self.transfer_active = True
+        with self._progress_lock:
+            self._last_progress_update = 0.0
+        self.transfer_label.set_text(f"{direction}: scanning selected folders ...")
+        self.transfer_progress.set_fraction(0.0)
+        self.transfer_detail.set_text("Preparing file list ...")
+        self.transfer_label.show()
+        self.transfer_progress.show()
+        self.transfer_detail.show()
+        self.transfer_panel.show()
+
+    def _progress(self, progress: TransferProgress) -> None:
+        now = time.monotonic()
+        finished = progress.total_files == progress.completed_files
+        with self._progress_lock:
+            if not finished and now - self._last_progress_update < 0.1:
+                return
+            self._last_progress_update = now
+        GLib.idle_add(self._display_transfer_progress, progress)
+
+    def _display_transfer_progress(self, progress: TransferProgress) -> bool:
+        if progress.current_name:
+            current = f"{format_size(progress.current_transferred)} / {format_size(progress.current_size)}"
+            self.transfer_label.set_text(f"{progress.direction}: {progress.current_name} — {current}")
+        else:
+            self.transfer_label.set_text(f"{progress.direction}: {progress.total_files} file(s) queued")
+
+        if progress.total_bytes:
+            fraction = min(1.0, progress.transferred_bytes / progress.total_bytes)
+        elif progress.total_files:
+            fraction = min(1.0, progress.completed_files / progress.total_files)
+        else:
+            fraction = 1.0
+        remaining = max(0, progress.total_bytes - progress.transferred_bytes)
+        speed = progress.transferred_bytes / progress.elapsed if progress.elapsed > 0 else 0.0
+        eta = remaining / speed if speed > 0 else 0.0
+        details = (
+            f"{int(fraction * 100)}% overall  •  {progress.completed_files}/{progress.total_files} files  •  "
+            f"{format_size(remaining)} remaining  •  {format_size(int(speed))}/s"
+        )
+        if remaining and speed:
+            details += f"  •  ETA {format_duration(eta)}"
+        self.transfer_progress.set_fraction(fraction)
+        self.transfer_detail.set_text(details)
+        self._status(details)
+        return False
+
+    def _upload_finished(self, summary: TransferSummary) -> None:
+        self._complete_transfer(summary)
+        self.refresh_remote()
+
+    def _download_finished(self, summary: TransferSummary) -> None:
+        self._complete_transfer(summary)
+        self.refresh_local()
+
+    def _complete_transfer(self, summary: TransferSummary) -> None:
+        self.transfer_active = False
+        speed = summary.bytes / summary.elapsed if summary.elapsed > 0 else 0.0
+        verb = "Uploaded" if summary.direction == "Uploading" else "Downloaded"
+        self.transfer_label.set_text(
+            f"{verb} {summary.files} file(s), {format_size(summary.bytes)} in {format_duration(summary.elapsed)}"
+        )
+        self.transfer_progress.set_fraction(1.0)
+        self.transfer_detail.set_text(f"Complete  •  Average {format_size(int(speed))}/s")
+        self._status(f"{verb} {summary.files} file(s) successfully.")
+
+    def _transfer_failed(self, message: str) -> None:
+        if not self.transfer_active:
+            return
+        self.transfer_active = False
+        self.transfer_label.set_text(f"Transfer failed: {message}")
+        self.transfer_detail.set_text("Failed")
 
     def _close_service(self) -> None:
         if self.service:
