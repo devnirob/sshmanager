@@ -8,6 +8,7 @@ from sshmanager.models import ConnectionProfile
 from sshmanager.profiles import ProfileStore
 from sshmanager.ssh_console import ssh_exit_message
 from sshmanager.system_ssh import ssh_command
+from sshmanager.ui import MainWindow
 
 
 class ProfileStoreTests(unittest.TestCase):
@@ -59,6 +60,38 @@ class SSHCommandTests(unittest.TestCase):
 
     def test_vte_wait_status_reports_normal_exit(self):
         self.assertEqual(ssh_exit_message(0), "SSH session ended.")
+
+
+class NewSSHSessionTests(unittest.TestCase):
+    def test_new_ssh_tab_saves_current_form_before_connecting(self):
+        opened = []
+
+        class Window:
+            ssh_sessions = type("Sessions", (), {"open_session": lambda _self, **kwargs: opened.append(kwargs)})()
+
+            @staticmethod
+            def _save_form():
+                return True
+
+        sessions = Window.ssh_sessions
+        MainWindow._open_new_session(Window(), sessions)
+
+        self.assertEqual(opened, [{"connect": True}])
+
+    def test_new_ssh_tab_does_not_open_when_form_is_invalid(self):
+        opened = []
+
+        class Window:
+            ssh_sessions = type("Sessions", (), {"open_session": lambda _self, **kwargs: opened.append(kwargs)})()
+
+            @staticmethod
+            def _save_form():
+                return False
+
+        sessions = Window.ssh_sessions
+        MainWindow._open_new_session(Window(), sessions)
+
+        self.assertEqual(opened, [])
 
 
 if __name__ == "__main__":

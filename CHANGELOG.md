@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.1 — 2026-09-10
+
+- Fix the New SSH Tab action so it saves and validates the current server form
+  before opening a connection, matching the Open SSH action.
+- Apply the same current-form handling to New SFTP Tab.
+
 ## 2.1.0 — 2026-09-04
 
 - Add a persistent SFTP transfer panel with the active filename, per-file bytes,

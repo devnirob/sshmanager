@@ -135,9 +135,11 @@ class MainWindow(Gtk.ApplicationWindow):
         self.notebook.append_page(self._build_profile_page(), Gtk.Label(label="SERVER DETAILS"))
         self.ssh_sessions = SSHSessionTabs()
         self.ssh_sessions.set_theme(self.settings.theme)
+        self.ssh_sessions.connect("new-tab-requested", self._open_new_session)
         self.ssh_sessions.connect("status-changed", self._on_tool_status)
         self.notebook.append_page(self.ssh_sessions, Gtk.Label(label="SSH TERMINALS"))
         self.sftp_sessions = SFTPSessionTabs()
+        self.sftp_sessions.connect("new-tab-requested", self._open_new_session)
         self.sftp_sessions.connect("status-changed", self._on_tool_status)
         self.notebook.append_page(self.sftp_sessions, Gtk.Label(label="SFTP SESSIONS"))
 
@@ -450,6 +452,10 @@ class MainWindow(Gtk.ApplicationWindow):
         if self._save_form():
             self.notebook.set_current_page(2)
             self.sftp_sessions.open_session(connect=True)
+
+    def _open_new_session(self, sessions) -> None:
+        if self._save_form():
+            sessions.open_session(connect=True)
 
     def _choose_key(self, _button) -> None:
         dialog = Gtk.FileChooserDialog(

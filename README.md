@@ -23,11 +23,11 @@ SSH Manager is a native Linux SSH client and SFTP file manager for people who wa
 
 ## Offline Debian/Ubuntu installation
 
-Download `ssh-manager_2.1.0_amd64.deb` and its checksum from the [GitHub Releases page](https://github.com/devnirob/sshmanager/releases), then run:
+Download `ssh-manager_2.1.1_amd64.deb` and its checksum from the [GitHub Releases page](https://github.com/devnirob/sshmanager/releases), then run:
 
 ```bash
-sha256sum -c ssh-manager_2.1.0_amd64.deb.sha256
-sudo apt install ./ssh-manager_2.1.0_amd64.deb
+sha256sum -c ssh-manager_2.1.1_amd64.deb.sha256
+sudo apt install ./ssh-manager_2.1.1_amd64.deb
 ```
 
 Version 2.0's `.deb` is intentionally much larger than the old 17–18 KB package. The old package held only the application source and asked APT to download GTK, VTE, Paramiko, libsecret, OpenSSH, and `sshpass`. The new architecture-specific package includes a private Python/GTK/VTE/Paramiko/OpenSSH runtime, so installation does not need the internet or those extra packages.

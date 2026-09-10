@@ -15,7 +15,10 @@ from .ssh_console import SSHConsoleWidget
 class SessionTabs(Gtk.Box):
     """A notebook of independent SSH or SFTP connections."""
 
-    __gsignals__ = {"status-changed": (GObject.SignalFlags.RUN_FIRST, None, (str,))}
+    __gsignals__ = {
+        "new-tab-requested": (GObject.SignalFlags.RUN_FIRST, None, ()),
+        "status-changed": (GObject.SignalFlags.RUN_FIRST, None, (str,)),
+    }
 
     def __init__(self, kind: str, factory: Callable[[], Gtk.Widget], connect_method: str) -> None:
         super().__init__(orientation=Gtk.Orientation.VERTICAL, spacing=0)
@@ -32,7 +35,7 @@ class SessionTabs(Gtk.Box):
         self.pack_start(toolbar, False, False, 0)
         new_button = Gtk.Button(label=f"+ New {kind} Tab")
         new_button.get_style_context().add_class("suggested-action")
-        new_button.connect("clicked", lambda *_: self.open_session(connect=True))
+        new_button.connect("clicked", lambda *_: self.emit("new-tab-requested"))
         toolbar.pack_start(new_button, False, False, 0)
         hint = Gtk.Label(label="Each tab keeps its own server connection")
         hint.set_xalign(0)
